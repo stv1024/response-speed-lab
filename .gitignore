@@ -5,3 +5,8 @@ Thumbs.db
 build/
 bin/
 *.user
+
+# 发布打包临时产物
+dist/
+*.zip
+SHA256SUMS.txt

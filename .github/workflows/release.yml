@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build and release (e.g. v1.0.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Configure
+        run: cmake -S . -B build -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $exe = "bin/ResponseSpeedLab.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "Build did not produce $exe"
+            exit 1
+          }
+
+          # The no-dependency claim in the README must hold for a shipped binary.
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -property installationPath
+          $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" |
+                     Select-Object -First 1
+          if ($dumpbin) {
+            $deps = & $dumpbin.FullName /dependents $exe | Out-String
+            Write-Output $deps
+            if ($deps -match 'VCRUNTIME|MSVCP\d+\.dll') {
+              Write-Error "Unexpected CRT dependency - refusing to ship"
+              exit 1
+            }
+          } else {
+            Write-Output "::warning::dumpbin not found, skipping CRT dependency check"
+          }
+
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item $exe dist/
+          Copy-Item LICENSE, README.md, 'README.zh-CN.md' dist/
+
+          $tag = "${{ github.event.inputs.tag || github.ref_name }}"
+          Compress-Archive -Path dist/* -DestinationPath "ResponseSpeedLab-$tag-x64.zip"
+
+          # Checksums so downloaders can verify what they got.
+          $zip = "ResponseSpeedLab-$tag-x64.zip"
+          (Get-FileHash $exe -Algorithm SHA256).Hash + "  ResponseSpeedLab.exe" |
+            Out-File -Encoding ascii SHA256SUMS.txt
+          (Get-FileHash $zip -Algorithm SHA256).Hash + "  $zip" |
+            Out-File -Encoding ascii -Append SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.event.inputs.tag || github.ref_name }}"
+          gh release create $tag `
+            "ResponseSpeedLab-$tag-x64.zip" `
+            "bin/ResponseSpeedLab.exe" `
+            "SHA256SUMS.txt" `
+            --title "$tag" `
+            --notes-file .github/RELEASE_NOTES.md
