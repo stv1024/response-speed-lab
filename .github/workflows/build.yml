@@ -19,7 +19,7 @@ jobs:
         arch: [x64]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # No generator is pinned: CMake picks whatever Visual Studio the runner
       # image ships. Keeps CI working across runner image upgrades.
@@ -59,7 +59,7 @@ jobs:
 
       - name: Upload artifact
         if: matrix.config == 'Release'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ResponseSpeedLab-${{ matrix.arch }}
           path: bin/ResponseSpeedLab.exe
