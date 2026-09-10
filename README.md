@@ -4,11 +4,14 @@
 
 **Feel every millisecond.** A native Windows tool that measures the *real* input-to-photon latency loop — from the hardware input timestamp to the vblank where pixels actually hit the screen.
 
+[![Build](https://github.com/stv1024/response-speed-lab/actions/workflows/build.yml/badge.svg)](https://github.com/stv1024/response-speed-lab/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue)
 ![Language](https://img.shields.io/badge/C%2B%2B-17-blue)
 
 English · [简体中文](README.zh-CN.md)
+
+<img src="docs/screenshot.png" alt="Response Speed Lab" width="880">
 
 </div>
 
@@ -96,6 +99,10 @@ cmake --build build --config Release --parallel
 Dear ImGui v1.92.1 is vendored in `third_party/imgui` — no dependency fetching required.
 
 The build produces `bin\ResponseSpeedLab.exe`. Double-click to run; `Esc` to quit.
+
+Don't want to build? Every push to `main` uploads a prebuilt executable as a
+[workflow artifact](https://github.com/stv1024/response-speed-lab/actions/workflows/build.yml)
+(downloadable while signed in to GitHub).
 
 ## Measurement scope and known limits
 

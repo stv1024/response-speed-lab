@@ -4,11 +4,14 @@
 
 **亲手感受每一毫秒。** 一个 Windows 原生小工具，测量的是**输入硬件时间戳 → 画面真正扫出到屏幕**的完整闭环。
 
+[![Build](https://github.com/stv1024/response-speed-lab/actions/workflows/build.yml/badge.svg)](https://github.com/stv1024/response-speed-lab/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue)
 ![Language](https://img.shields.io/badge/C%2B%2B-17-blue)
 
 [English](README.md) · 简体中文
+
+<img src="docs/screenshot.png" alt="响应速度实验室" width="880">
 
 </div>
 
@@ -96,6 +99,10 @@ cmake --build build --config Release --parallel
 Dear ImGui v1.92.1 已 vendor 在 `third_party/imgui`，无需拉取依赖。
 
 构建产物是 `bin\ResponseSpeedLab.exe`，双击运行，`Esc` 退出。
+
+不想自己编译？每次推送到 `main` 都会把编译好的 exe 作为
+[workflow artifact](https://github.com/stv1024/response-speed-lab/actions/workflows/build.yml)
+上传（登录 GitHub 后可下载）。
 
 ## 测量口径与已知边界
 

@@ -1,0 +1,66 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Windows ${{ matrix.config }} (${{ matrix.arch }})
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Release, Debug]
+        arch: [x64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No generator is pinned: CMake picks whatever Visual Studio the runner
+      # image ships. Keeps CI working across runner image upgrades.
+      - name: Configure
+        run: cmake -S . -B build -A ${{ matrix.arch }}
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.config }} --parallel
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          $exe = "bin/ResponseSpeedLab.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "Build did not produce $exe"
+            exit 1
+          }
+          $size = (Get-Item $exe).Length
+          Write-Output "$exe - $([math]::Round($size / 1KB)) KB"
+
+          # Statically linked: must not depend on a VC++ redistributable.
+          # dumpbin is not on PATH by default, so locate it via vswhere.
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -property installationPath
+          $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" |
+                     Select-Object -First 1
+          if (-not $dumpbin) {
+            Write-Output "::warning::dumpbin not found, skipping CRT dependency check"
+            exit 0
+          }
+          $deps = & $dumpbin.FullName /dependents $exe | Out-String
+          Write-Output $deps
+          if ($deps -match 'VCRUNTIME|MSVCP\d+\.dll') {
+            Write-Error "Unexpected CRT dependency - static linking broke"
+            exit 1
+          }
+
+      - name: Upload artifact
+        if: matrix.config == 'Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ResponseSpeedLab-${{ matrix.arch }}
+          path: bin/ResponseSpeedLab.exe
+          if-no-files-found: error
